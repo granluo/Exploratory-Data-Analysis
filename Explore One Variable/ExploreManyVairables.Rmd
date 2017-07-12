@@ -1,0 +1,210 @@
+
+## Third Qualitative Variable
+```{r}
+
+library(ggplot2)
+pf <-  read.csv("pseudo_facebook.tsv",sep = "\t")
+```
+
+```{r}
+ggplot(aes(x = gender, y =age), data = subset(pf, !is.na(gender)))+
+  geom_boxplot()+
+  stat_summary(fun.y = mean,geom = 'point', shape =4)# average is marked by X in the plots (shape 4).
+
+ggplot(aes(x= age, y = friend_count), data = subset(pf,!is.na(gender)))+
+  geom_line(aes(color= gender), stat = 'summary', fun.y = median)
+```
+
+```{r}
+library(dplyr)
+
+pf.fc_by_age_gender <- subset(pf,!is.na(gender)) %>% 
+  group_by(age,gender) %>% 
+  summarise(mean_friend_count = mean(friend_count),median_friend_count = median(friend_count), n = n()) %>% 
+  arrange(age)
+
+head(pf.fc_by_age_gender)
+
+```
+
+```{r}
+ggplot(aes(x= age, y = median_friend_count),data = subset(pf.fc_by_age_gender,!is.na(gender)))+
+  geom_line(aes(color = gender))
+```
+```{r}
+if (!require("reshape2")){
+  install.packages('reshape2')
+}
+library (reshape2)
+
+pf.fc_by_age_gender.wide <- dcast(pf.fc_by_age_gender,
+                                   age ~ gender,
+                                   value.var = 'median_friend_count')
+head(pf.fc_by_age_gender.wide)
+
+
+```
+```{r}
+ggplot(aes(age,female/male),data = pf.fc_by_age_gender.wide)+
+  geom_line()+
+  geom_hline(yintercept = 1, alpha=0.3,linetype =2 )
+```
+
+```{r}
+head(pf)
+pf$year_joined <- floor(2014 - pf$tenure/365)
+
+```
+
+```{r}
+summary(pf$year_joined)
+pf[pf$year_joined == 2014,]
+table(pf$year_joined)
+```
+
+```{r}
+pf$year_joined.bucket <- cut(pf$year_joined,breaks = c(2004,2009,2011,2012,2014))
+table(pf$year_joined.bucket,useNA = "ifany")
+```
+```{r}
+ggplot(aes(x=age,y = friend_count),data = subset(pf,!is.na(gender)))+
+  geom_line(aes(color = gender), stat = 'summary' , fun.y = median)
+
+ggplot(aes(x=age,y = friend_count),data = subset(pf,!is.na(gender)))+
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = median)
+```
+
+```{r}
+
+ggplot(aes(x=age,y = friend_count),data = subset(pf,!is.na(gender) & !is.na(year_joined.bucket)))+
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = median)+
+  geom_line(stat='summary', fun.y = mean, linetype = 4)
+```
+```{r}
+with(subset(pf,tenure >=1),summary(friend_count/tenure))
+```
+
+```{r}
+ggplot(aes(x = tenure, y = friendships_initiated/tenure), data = subset(pf,tenure >=1))+
+  geom_line(aes(color = year_joined.bucket), stat = "summary", fun.y = mean)
+```
+
+```{r}
+ggplot(aes(x = tenure, y = friendships_initiated/tenure), data = subset(pf,tenure >=1))+
+  geom_smooth(aes(color = year_joined.bucket))
+```
+```{r}
+
+yo <-  read.csv("yogurt.csv")
+
+yo$id <- factor(yo$id)
+
+str(yo)
+```
+
+```{r}
+ggplot(aes(x = price),data= yo)+
+  geom_histogram(binwidth =  10)
+```
+
+```{r}
+summary(yo)
+length(unique(yo$price))
+table(yo$price)
+head(yo)
+str(yo)
+yo <- transform(yo,all.purchases = (strawberry+blueberry+pina.colada+plain+mixed.berry))
+head(yo)
+
+```
+
+```{r}
+ggplot(aes(x= all.purchases),data = yo, binwidth =1 )+
+  geom_bar()
+
+ggplot(aes(x = time, y = price),data = yo) +
+  geom_jitter(alpha = .2,shape = 21,fill = I("#F79420"))
+
+```
+
+```{r}
+set.seed(222)
+
+sample.ids <- sample(levels(yo$id ),16)
+
+ggplot(aes(x = time, y = price), data = subset(yo, id %in% sample.ids))+
+  facet_wrap(~ id )+
+  geom_line()+
+  geom_point(aes(size = all.purchases),pch = 1)
+  
+```
+```{r}
+if(!require(GGally)){
+  install.packages('GGally')
+}
+library(GGally)
+```
+```{r}
+theme_set(theme_minimal(20))
+
+set.seed(1836)
+pf_subset <- pf[,c(2:15)]
+names(pf_subset)
+```
+#Problem set
+```{r}
+data(diamonds)
+```
+
+```{r}
+ggplot(aes(x = price), data = diamonds)+
+  geom_histogram(aes(fill = cut))+
+  facet_wrap(~color)+
+  scale_x_log10()+
+  scale_fill_brewer(type = 'qual')
+```
+
+```{r}
+
+ggplot(aes(x = table, y = price),data =diamonds)+
+  xlim(50,80)+
+  geom_point(aes(color = cut))+
+  scale_fill_brewer(type = 'qual')
+
+by(diamonds$table,diamonds$cut,summary)
+```
+```{r}
+diamonds <- transform(diamonds, volume = x*y*z)
+ggplot(aes(x = volume, y = price,color = clarity),data = subset(diamonds,volume > 0))+
+  geom_point()+
+  scale_y_log10()+
+  xlim(0,350)+
+  scale_color_brewer(type = 'qual')
+```
+
+```{r}
+pf$prop_initiated <- with(pf,ifelse(friend_count == 0, NA, friendships_initiated/friend_count))
+names(pf)
+```
+
+```{r}
+
+  
+```
+
+```{r}
+ggplot(aes(x=tenure, y = prop_initiated, color = year_joined.bucket), data = subset(pf,!is.na(tenure)))+
+  geom_line(binwidth = 1000,stat = 'summary', fun.y = median,na.rm=T)+
+  geom_smooth(aes(color = 'smooth'),color = 'black')
+```
+
+```{r}
+by(pf$prop_initiated,pf$year_joined.bucket,summary)
+```
+```{r}
+ggplot(aes(x = cut , y = price/carat), data = diamonds)+
+  geom_jitter(aes(color = color),height = 0)+
+  facet_wrap(~clarity)+
+  scale_color_brewer(type = 'div')
+```
+

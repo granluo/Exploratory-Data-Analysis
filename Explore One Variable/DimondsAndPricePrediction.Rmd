@@ -1,0 +1,19 @@
+Dimonds and price prediction
+
+
+```{r}
+
+data(diamonds)
+
+library(ggplot2)
+
+```
+
+```{r}
+ggplot(aes(x=carat, y = price),data = diamonds)+
+  xlim(0,quantile(diamonds$carat,0.99))+
+  ylim(0,quantile(diamonds$price,0.99))+
+  geom_point(stat = 'summary',fun.y=quantile,fun.args=list(probs=0.99))
+```
+
+

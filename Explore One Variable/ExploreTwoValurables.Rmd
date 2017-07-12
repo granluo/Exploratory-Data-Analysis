@@ -1,0 +1,227 @@
+Lesson 4 
+
+#Scatter Plots
+```{r}
+library(ggplot2)
+pf <-  read.csv("pseudo_facebook.tsv",sep = "\t")
+
+```
+
+```{r}
+qplot(x= age , y = friend_count, data = pf )
+qplot(age, friend_count,data = pf)
+```
+
+```{r}
+ggplot(aes(x = age, y = friend_count),data = pf )+
+  geom_jitter(alpha = 1/20)+ # comparing to geom_points, jitter adds some noices.
+  xlim(13,90)
+
+summary (pf$age)
+
+
+```
+```{r}
+ggplot(aes(x = age, y = friend_count),data = pf )+
+  geom_point(alpha = 1/20, position = position_jitter(height = 0))+ # height here is position of points will jitter 0 on the y axis.
+  xlim(13,90)+
+  coord_trans(y = "sqrt")
+
+```
+
+```{r}
+pf$age
+
+ggplot(aes(age, friendships_initiated), data = pf)+
+  geom_point(alpha = 1/20, position = position_jitter(height = 0))+
+  xlim(13,90)+
+  coord_trans(y = "sqrt")
+```
+Conditional means
+
+```{r}
+library('dplyr')
+age_groups <- group_by(pf,age)
+?summarise
+pf.fc_by_age <- summarise(age_groups,
+                          friend_count_mean = mean(friend_count),
+                          friend_count_median= median (friend_count),
+                          n = n()
+)
+
+pf.fc_by_age <- arrange(pf.fc_by_age,age)
+head(age_groups)
+head(pf.fc_by_age)
+```
+```{r}
+pf.fc_by_age <- pf %>% 
+  group_by(age) %>% 
+  summarise(friend_count_mean = mean(friend_count),
+            friend_count_median = mean(friend_count),
+            n = n()) %>% 
+  arrange(age)
+head(pf.fc_by_age)
+```
+
+```{r}
+ggplot(aes(x = age, y = friend_count_mean), data = pf.fc_by_age)+geom_line()+geom_line(stat = "summary", fun.y = mean)
+
+ggplot(aes(age, friendships_initiated), data = pf)+
+  geom_point(alpha = 1/20, position = position_jitter(height = 0), color = "orange")+
+  xlim(13,90)+
+  coord_trans(y = "sqrt")+
+  geom_line(stat= "summary",fun.y=mean)+
+  geom_line(stat = "summary",fun.y = quantile,fun.args = list(probs = .1),linetype= 2, color= "blue")+
+  geom_line(stat = "summary",fun.y = quantile,fun.args = list(probs = .9),linetype= 2, color= "blue")+
+  geom_line(stat = "summary",fun.y = quantile,fun.args = list(probs = .5),linetype= 1, color= "blue")
+```
+
+```{r}
+ggplot(aes(age, friend_count), data = pf)+
+  geom_point(alpha = 1/20, position = position_jitter(height = 0), color = "orange")+
+  coord_cartesian(xlim = c(13,70),ylim=c(0,1000))+
+  geom_line(stat= "summary",fun.y=mean)+
+  geom_line(stat = "summary",fun.y = quantile,fun.args = list(probs = .1),linetype= 2, color= "blue")+
+  geom_line(stat = "summary",fun.y = quantile,fun.args = list(probs = .9),linetype= 2, color= "blue")+
+  geom_line(stat = "summary",fun.y = quantile,fun.args = list(probs = .5),linetype= 1, color= "blue")
+```
+
+```{r}
+
+cor.test(pf$age,pf$friend_count,method ="pearson")
+
+with(pf,cor.test(age,friend_count,method="pearson"))
+```
+
+
+```{r}
+names(pf)
+ggplot(aes(x =  www_likes_received, y = likes_received), data = pf)+
+  geom_point()+
+  xlim(0,quantile(pf$www_likes_received,.95))+
+  ylim(0,quantile(pf$likes_received,.95))+
+  geom_smooth(method ="lm",color= 'red')
+
+
+with(pf, cor.test(www_likes_received,likes_received,method="pearson"))
+```
+
+```{r}
+if(!require(alr3)){
+  install.packages('alr3')
+}
+library(alr3)
+
+data("Mitchell")
+?Mitchell
+names(Mitchell)
+```
+```{r}
+ggplot(aes(x = Month, y = Temp), data = Mitchell)+
+  geom_point()
+with(Mitchell,cor.test(Temp, Month,method = "pearson"))
+```
+```{r}
+ggplot(aes(x = Month, y = Temp), data = Mitchell)+
+  geom_point()+
+  scale_x_continuous(breaks = seq(0,range(Mitchell$Month)[2],12))
+```
+
+
+```{r}
+names(pf)
+
+head(pf$dob_month)
+
+pf$age_with_months <- with(pf,age+(1-dob_month/12))
+```
+```{r}
+
+age_bymonth_group <- group_by(pf,age_with_months)
+head(age_bymonth_group)
+pf.fc_by_age_months = pf %>% 
+  group_by(age_with_months) %>% 
+  summarise(friend_count_mean = mean(friend_count), friend_count_median = median(friend_count), n = n()) %>% 
+  arrange(age_with_months)
+
+head(pf.fc_by_age_months)
+```
+
+```{r}
+p1age <- ggplot(aes(x = age, y =friend_count), data =pf[pf$age<71,])+
+  geom_line(stat= "summary",fun.y=mean)
+p2agewithmonths <- ggplot(aes(x = age_with_months, y = friend_count_mean),data =  subset(pf.fc_by_age_months,age_with_months<71))+
+  geom_line()
+
+grid.arrange(p1age,p2agewithmonths,ncol = 1)
+```
+
+```{r}
+subset(pf,age<71)
+```
+```{r}
+
+data(diamonds)
+ggplot(aes(x,price), data = diamonds)+
+  geom_point()
+
+x <- list('x','y','z')
+
+lapply( eval(parse(text=paste("diamonds$", x, sep = ""))),cor.test,y =diamonds$price,method = "pearson")
+
+```
+
+```{r}
+ggplot(aes(x = depth, y = price),data = diamonds)+
+  geom_point()
+```
+```{r}
+with(diamonds,cor.test(depth,price, method="pearson"))
+```
+
+```{r}
+
+```
+
+```{r}
+diamonds$v <- with(diamonds,x*y*z)
+
+ggplot(aes(x= v, y = price), data = diamonds)+
+  geom_point()
+```
+
+```{r}
+with(diamonds[diamonds$v!=0 & diamonds$v <800,],cor.test(price,v))
+```
+
+```{r}
+
+
+
+```
+
+```{r}
+library(dplyr)
+
+
+(diamondsByClarity)
+```
+
+```{r}
+diamonds_by_clarity <- group_by(diamonds, clarity)
+diamonds_mp_by_clarity <- summarise(diamonds_by_clarity, mean_price = mean(price))
+
+diamonds_by_color <- group_by(diamonds, color)
+diamonds_mp_by_color <- summarise(diamonds_by_color, mean_price = mean(price))
+
+diamonds_by_cut <- group_by(diamonds, cut)
+diamonds_mp_by_cut <- summarise(diamonds_by_cut, mean_price = mean(price))
+
+pclarity <- ggplot (aes(x= clarity,y = mean_price),data = diamonds_mp_by_clarity)+geom_bar(stat = 'identity')
+pcolor <- ggplot(aes(x = color, y = mean_price), data = diamonds_mp_by_color)+geom_bar(stat = 'identity')
+pcut <- ggplot(aes(x = cut, y = mean_price), data = diamonds_mp_by_cut)+geom_bar(stat = 'identity')
+grid.arrange(pclarity,pcolor,pcut,ncol = 1)
+
+?diamonds
+```
+
